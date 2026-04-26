@@ -13,7 +13,7 @@ const app = express();
 app.use(
   cors({
     origin: [
-      `http://localhost:${PORT}`
+      `http://192.168.1.8:3000`
     ],
     methods: ["GET"],
     credentials: false
