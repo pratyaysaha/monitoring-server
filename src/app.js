@@ -12,14 +12,24 @@ const app = express();
 
 app.use(
   cors({
-    origin: [
-      `http://192.168.1.8:3000`,
-      'http://localhost:3000'
-    ],
-    methods: ["GET"],
-    credentials: false
+    origin: (origin, callback) => {
+      const allowed = [
+        /^https:\/\/.*\.pages\.dev$/,
+        /^https:\/\/dashboard\.pratyaysaha\.in$/,
+        /^https:\/\/dashboard\.chiragchaudhuri\.in$/,
+        /^http:\/\/localhost:3000$/,
+        /^http:\/\/192\.168\.1\.8:3000$/,
+      ];
+
+      if (!origin || allowed.some((r) => r.test(origin))) {
+        return callback(null, true);
+      }
+
+      callback(new Error("Not allowed by CORS"));
+    },
   })
 );
+
 app.use(express.json());
 
 app.use("/api/dashboard", dashboardRoutes);
