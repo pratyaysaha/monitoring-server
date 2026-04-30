@@ -1,6 +1,6 @@
 # Dockerfile
 
-FROM node:18-alpine
+FROM node:22-bookworm-slim
 
 WORKDIR /app
 
