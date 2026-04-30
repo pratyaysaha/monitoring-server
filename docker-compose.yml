@@ -11,6 +11,9 @@ services:
     env_file:
       - .env
 
+    volumes:
+      - "${HOST_PUSH_NOTIFICATION_DB}:${PUSH_NOTIFICATION_DB}"
+
     restart: unless-stopped
 
     healthcheck:
