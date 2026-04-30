@@ -14,5 +14,6 @@ const services = serviceNames.map((name) => {
 module.exports = {
   port: process.env.PORT || 3000,
   promUrl: process.env.PROM_URL,
-  services
+  services,
+  pushNotificationDb: process.env.PUSH_NOTIFICATION_DB
 };
