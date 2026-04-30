@@ -15,5 +15,8 @@ module.exports = {
   port: process.env.PORT || 3000,
   promUrl: process.env.PROM_URL,
   services,
-  pushNotificationDb: process.env.PUSH_NOTIFICATION_DB
+  pushNotificationDb: process.env.PUSH_NOTIFICATION_DB,
+  vapidPublicKey: process.env.VAPID_PUBLIC_KEY,
+  vapidPrivateKey: process.env.VAPID_PRIVATE_KEY,
+  vapidSubject: process.env.VAPID_SUBJECT
 };
