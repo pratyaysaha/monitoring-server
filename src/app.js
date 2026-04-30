@@ -17,6 +17,7 @@ app.use(
     origin: [
       `http://192.168.1.8:3000`,
       'http://localhost:3000',
+      'https://dev.home-server-dashboard-2y3.pages.dev',
       'https://home-server-dashboard-2y3.pages.dev',
       'https://dashboard.pratyaysaha.in',
       'https://dashboard.chiragchaudhuri.in',
