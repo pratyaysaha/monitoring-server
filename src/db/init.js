@@ -7,17 +7,35 @@ function initializeDatabase() {
             endpoint TEXT PRIMARY KEY,
             p256dh TEXT NOT NULL,
             auth TEXT NOT NULL,
+            device_type TEXT NOT NULL DEFAULT 'unknown',
+            origin TEXT,
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP
         );
     `);
 
     const columns = notificationDb.prepare(`PRAGMA table_info(push_subscriptions);`).all();
     const hasSubscriptionId = columns.some((column) => column.name === "subscription_id");
+    const hasDeviceType = columns.some((column) => column.name === "device_type");
+    const hasOrigin = columns.some((column) => column.name === "origin");
 
     if (!hasSubscriptionId) {
         notificationDb.exec(`
             ALTER TABLE push_subscriptions
             ADD COLUMN subscription_id TEXT;
+        `);
+    }
+
+    if (!hasDeviceType) {
+        notificationDb.exec(`
+            ALTER TABLE push_subscriptions
+            ADD COLUMN device_type TEXT NOT NULL DEFAULT 'unknown';
+        `);
+    }
+
+    if (!hasOrigin) {
+        notificationDb.exec(`
+            ALTER TABLE push_subscriptions
+            ADD COLUMN origin TEXT;
         `);
     }
 

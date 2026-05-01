@@ -3,6 +3,53 @@ const crypto = require("crypto");
 const notificationDb = require("../db/notification-db");
 const config = require("../configs");
 
+function normalizeDeviceType(deviceType) {
+    if (!deviceType) {
+        return null;
+    }
+
+    const normalized = String(deviceType).trim().toLowerCase();
+
+    if (["prod", "production"].includes(normalized)) {
+        return "prod";
+    }
+
+    if (["test", "dev", "development", "staging"].includes(normalized)) {
+        return "test";
+    }
+
+    return "unknown";
+}
+
+function resolveDeviceType(origin, requestedDeviceType) {
+    const normalizedRequestedType = normalizeDeviceType(requestedDeviceType);
+
+    if (normalizedRequestedType && normalizedRequestedType !== "unknown") {
+        return normalizedRequestedType;
+    }
+
+    const normalizedOrigin = String(origin || "").toLowerCase();
+
+    if (!normalizedOrigin) {
+        return "unknown";
+    }
+
+    if (normalizedOrigin.includes("dashboard.pratyaysaha.in")) {
+        return "prod";
+    }
+
+    if (
+        normalizedOrigin.includes("localhost") ||
+        normalizedOrigin.includes("127.0.0.1") ||
+        normalizedOrigin.includes("dev.") ||
+        normalizedOrigin.includes("pages.dev")
+    ) {
+        return "test";
+    }
+
+    return "unknown";
+}
+
 function ensureWebPushConfigured() {
     if (!config.vapidPublicKey || !config.vapidPrivateKey || !config.vapidSubject) {
         throw new Error("VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY and VAPID_SUBJECT must be configured");
@@ -15,14 +62,16 @@ function ensureWebPushConfigured() {
     );
 }
 
-exports.subscribePushNotification = (subscription) => {
-    const endpoint = subscription.endpoint;
-    const p256dh = subscription.keys.p256dh;
-    const auth = subscription.keys.auth;
+exports.subscribePushNotification = ({ subscription, deviceType, origin }) => {
+    const endpoint = subscription?.endpoint;
+    const p256dh = subscription?.keys?.p256dh;
+    const auth = subscription?.keys?.auth;
 
     if (!endpoint || !p256dh || !auth) {
         throw new Error("subscription endpoint, p256dh and auth are required");
     }
+
+    const resolvedDeviceType = resolveDeviceType(origin, deviceType);
 
     const existingSubscription = notificationDb
         .prepare(`SELECT subscription_id FROM push_subscriptions WHERE endpoint = ?`)
@@ -31,19 +80,23 @@ exports.subscribePushNotification = (subscription) => {
     const subscriptionId = existingSubscription?.subscription_id || crypto.randomUUID();
 
     const statement = notificationDb.prepare(`
-        INSERT INTO push_subscriptions (subscription_id, endpoint, p256dh, auth)
-        VALUES (?, ?, ?, ?)
+        INSERT INTO push_subscriptions (subscription_id, endpoint, p256dh, auth, device_type, origin)
+        VALUES (?, ?, ?, ?, ?, ?)
         ON CONFLICT(endpoint) DO UPDATE SET
             subscription_id = excluded.subscription_id,
             p256dh = excluded.p256dh,
-            auth = excluded.auth
+            auth = excluded.auth,
+            device_type = excluded.device_type,
+            origin = excluded.origin
     `);
 
-    statement.run(subscriptionId, endpoint, p256dh, auth);
+    statement.run(subscriptionId, endpoint, p256dh, auth, resolvedDeviceType, origin || null);
 
     return {
         success: true,
-        subscriptionId
+        subscriptionId,
+        deviceType: resolvedDeviceType,
+        origin: origin || null
     };
 };
 
