@@ -5,8 +5,16 @@ const router = express.Router();
 
 router.post("/subscribe", async (req, res) => {
     try {
-        const subscription = req.body;
-        const result = notificationService.subscribePushNotification(subscription);
+        const subscription = req.body?.subscription || req.body;
+        const deviceType = req.body?.deviceType;
+        const origin = req.headers.origin || req.headers.referer || null;
+
+        const result = notificationService.subscribePushNotification({
+            subscription,
+            deviceType,
+            origin
+        });
+
         res.json(result);
     } catch (ex) {
         console.error(ex);
