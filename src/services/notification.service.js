@@ -150,3 +150,96 @@ exports.sendTestNotification = async ({ subscriptionId, endpoint, title, body, d
         endpoint: subscription.endpoint
     };
 };
+
+exports.broadcastNotification = async ({ deviceType, subscriptionId, title, body, data }) => {
+    ensureWebPushConfigured();
+
+    const normalizedDeviceType = normalizeDeviceType(deviceType);
+
+    let subscriptions = [];
+
+    if (subscriptionId) {
+        const subscription = notificationDb
+            .prepare(`
+                SELECT subscription_id, endpoint, p256dh, auth, device_type
+                FROM push_subscriptions
+                WHERE subscription_id = ?
+            `)
+            .get(subscriptionId);
+
+        if (!subscription) {
+            throw new Error("No push subscription found for the provided subscriptionId");
+        }
+
+        subscriptions = [subscription];
+    } else {
+        if (!normalizedDeviceType || normalizedDeviceType === "unknown") {
+            throw new Error("deviceType must be 'prod' or 'test' when subscriptionId is not provided");
+        }
+
+        subscriptions = notificationDb
+            .prepare(`
+                SELECT subscription_id, endpoint, p256dh, auth, device_type
+                FROM push_subscriptions
+                WHERE device_type = ?
+            `)
+            .all(normalizedDeviceType);
+    }
+
+    if (!subscriptions.length) {
+        return {
+            success: true,
+            sent: 0,
+            failed: 0,
+            results: []
+        };
+    }
+
+    const payload = JSON.stringify({
+        title: title || "Notification",
+        body: body || "Broadcast notification from Home Server.",
+        data: data || {
+            source: "monitoring-api",
+            type: "broadcast"
+        }
+    });
+
+    const results = await Promise.all(
+        subscriptions.map(async (subscription) => {
+            try {
+                await webpush.sendNotification(
+                    {
+                        endpoint: subscription.endpoint,
+                        keys: {
+                            p256dh: subscription.p256dh,
+                            auth: subscription.auth
+                        }
+                    },
+                    payload
+                );
+
+                return {
+                    subscriptionId: subscription.subscription_id,
+                    deviceType: subscription.device_type,
+                    endpoint: subscription.endpoint,
+                    success: true
+                };
+            } catch (error) {
+                return {
+                    subscriptionId: subscription.subscription_id,
+                    deviceType: subscription.device_type,
+                    endpoint: subscription.endpoint,
+                    success: false,
+                    error: error.message
+                };
+            }
+        })
+    );
+
+    return {
+        success: results.some((result) => result.success),
+        sent: results.filter((result) => result.success).length,
+        failed: results.filter((result) => !result.success).length,
+        results
+    };
+};
