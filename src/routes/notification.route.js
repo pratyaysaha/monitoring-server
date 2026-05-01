@@ -51,4 +51,17 @@ router.post("/test", async (req, res) => {
     }
 });
 
+router.post("/broadcast", async (req, res) => {
+    try {
+        const result = await notificationService.broadcastNotification(req.body);
+        res.json(result);
+    } catch (ex) {
+        console.error(ex);
+        res.status(500).json({
+            success: false,
+            message: ex.message
+        });
+    }
+});
+
 module.exports = router;
