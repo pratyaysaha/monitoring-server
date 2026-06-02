@@ -16,7 +16,9 @@ module.exports = {
   promUrl: process.env.PROM_URL,
   services,
   pushNotificationDb: process.env.PUSH_NOTIFICATION_DB,
+  automationDbUri: process.env.AUTOMATION_DB,
   vapidPublicKey: process.env.VAPID_PUBLIC_KEY,
   vapidPrivateKey: process.env.VAPID_PRIVATE_KEY,
-  vapidSubject: process.env.VAPID_SUBJECT
+  vapidSubject: process.env.VAPID_SUBJECT,
+  automationScriptBasePath: process.env.AUTOMATION_SCRIPT_BASE_PATH
 };

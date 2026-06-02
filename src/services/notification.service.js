@@ -1,6 +1,6 @@
 const webpush = require("web-push");
 const crypto = require("crypto");
-const notificationDb = require("../db/notification-db");
+const notificationDb = require("../db/push-notification/notification-db");
 const config = require("../configs");
 
 function normalizeDeviceType(deviceType) {
