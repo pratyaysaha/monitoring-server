@@ -18,5 +18,7 @@ module.exports = {
   pushNotificationDb: process.env.PUSH_NOTIFICATION_DB,
   vapidPublicKey: process.env.VAPID_PUBLIC_KEY,
   vapidPrivateKey: process.env.VAPID_PRIVATE_KEY,
-  vapidSubject: process.env.VAPID_SUBJECT
+  vapidSubject: process.env.VAPID_SUBJECT,
+  plexUrl: process.env.PLEX_URL,
+  plexToken: process.env.PLEX_TOKEN
 };

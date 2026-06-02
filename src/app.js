@@ -8,6 +8,8 @@ const dashboardRoutes = require("./routes/dashboard.routes");
 const metricsRoutes = require("./routes/metrics.routes");
 const servicesRoutes = require("./routes/services.routes");
 const notificationRoutes = require("./routes/notification.route");
+const plexRoutes = require("./routes/plex.routes");
+
 const { initializeDatabase } = require("./db/init");
 
 const app = express();
@@ -35,6 +37,7 @@ app.use("/api/dashboard", dashboardRoutes);
 app.use("/api/metrics", metricsRoutes);
 app.use("/api/services", servicesRoutes);
 app.use("/api/notification", notificationRoutes)
+app.use("/api/plex", plexRoutes);
 
 app.get("/api/ping", (req, res) => {
   res.json({ status: "ok" });
