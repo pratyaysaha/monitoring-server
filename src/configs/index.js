@@ -19,6 +19,6 @@ module.exports = {
   vapidPublicKey: process.env.VAPID_PUBLIC_KEY,
   vapidPrivateKey: process.env.VAPID_PRIVATE_KEY,
   vapidSubject: process.env.VAPID_SUBJECT,
-  plexUrl: process.env.PLEX_URL,
+  plexUrl: process.env.PLEX_BASE_URL,
   plexToken: process.env.PLEX_TOKEN
 };
