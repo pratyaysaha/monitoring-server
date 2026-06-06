@@ -20,5 +20,8 @@ module.exports = {
   vapidPrivateKey: process.env.VAPID_PRIVATE_KEY,
   vapidSubject: process.env.VAPID_SUBJECT,
   plexUrl: process.env.PLEX_BASE_URL,
-  plexToken: process.env.PLEX_TOKEN
+  plexToken: process.env.PLEX_TOKEN,
+  geminiApiKey: process.env.GEMINI_AI_API_KEY,
+  blogDb: process.env.BLOG_DB,
+  hugoBasePath: process.env.HUGO_POST_PATH
 };

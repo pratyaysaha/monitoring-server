@@ -11,6 +11,8 @@ services:
 
     volumes:
       - "${HOST_PUSH_NOTIFICATION_DB}:${PUSH_NOTIFICATION_DB}"
+      - "${HOST_BLOG_DB}:${BLOG_DB}"
+      - "${HOST_HUGO_POST_PATH}:${HUGO_POST_PATH}"
 
     restart: unless-stopped
 

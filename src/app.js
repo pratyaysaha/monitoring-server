@@ -9,8 +9,11 @@ const metricsRoutes = require("./routes/metrics.routes");
 const servicesRoutes = require("./routes/services.routes");
 const notificationRoutes = require("./routes/notification.route");
 const plexRoutes = require("./routes/plex.routes");
+const aiRoutes = require("./routes/ai.routes");
+const blogRoutes = require("./routes/blog.routes");
 
 const { initializeDatabase } = require("./db/init");
+const { initializeBlogDatabase } = require("./db/blog-db-init");
 
 const app = express();
 
@@ -32,12 +35,15 @@ app.use(
 app.use(express.json());
 
 initializeDatabase();
+initializeBlogDatabase();
 
 app.use("/api/dashboard", dashboardRoutes);
 app.use("/api/metrics", metricsRoutes);
 app.use("/api/services", servicesRoutes);
 app.use("/api/notification", notificationRoutes)
 app.use("/api/plex", plexRoutes);
+app.use("/api/ai", aiRoutes);
+app.use("/api/blog", blogRoutes);
 
 app.get("/api/ping", (req, res) => {
   res.json({ status: "ok" });
