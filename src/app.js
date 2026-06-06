@@ -28,7 +28,7 @@ app.use(
       'https://dashboard.chiragchaudhuri.in',
 
     ],
-    methods: ["GET"],
+    methods: ["GET", "POST", "PUT", "DELETE"],
     credentials: false
   })
 );
