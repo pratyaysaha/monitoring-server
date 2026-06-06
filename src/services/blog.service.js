@@ -239,6 +239,13 @@ exports.publishBlogDraft = async (projectId, slug) => {
     if(project.status !== "draft_selected" || !project.selected_draft_id) {
         throw new Error("No draft selected for publishing");
     }
+    const existingPostStmt = blogDb.prepare(`
+        SELECT * FROM blog_posts WHERE slug = ?
+    `);
+    const existingPost = existingPostStmt.get(slug);
+    if (existingPost) {
+        throw new Error("A post has already been published fwith same slug. Please choose a different slug and try again.");
+    }
     const draftStmt = blogDb.prepare(`
         SELECT * FROM blog_drafts WHERE draft_id = ?
     `);
