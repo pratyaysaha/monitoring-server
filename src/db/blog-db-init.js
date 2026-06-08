@@ -33,14 +33,14 @@ function initializeBlogDatabase() {
     blogDb.exec(`
         CREATE TABLE IF NOT EXISTS blog_assets (
             asset_id TEXT PRIMARY KEY,
-            draft_id TEXT NOT NULL,
+            project_id TEXT NOT NULL,
             asset_type TEXT NOT NULL,
             file_name TEXT NOT NULL,
             file_path TEXT NOT NULL,
-            prompt TEXT,
+            description TEXT,
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY(draft_id)
-                REFERENCES blog_drafts(draft_id)
+            FOREIGN KEY(project_id)
+                REFERENCES blog_projects(project_id)
                 ON DELETE CASCADE
         );
     `);
@@ -67,8 +67,8 @@ function initializeBlogDatabase() {
     `);
 
     blogDb.exec(`
-        CREATE INDEX IF NOT EXISTS idx_blog_assets_draft_id
-        ON blog_assets(draft_id);
+        CREATE INDEX IF NOT EXISTS idx_blog_assets_project_id
+        ON blog_assets(project_id);
     `);
 
     blogDb.exec(`

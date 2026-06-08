@@ -1,5 +1,6 @@
 const express = require("express");
 const blogService = require("../services/blog.service");
+const { uploadAnyAsset, uploadMultipleImages } = require("../middleware/uploadMultipleFiles");
 
 const router = express.Router();
 
@@ -211,6 +212,62 @@ router.get("/post/:id/content", async (req, res) => {
     }
 });
 
+router.post("/project/:projectId/assets", uploadMultipleImages, async (req, res) => {
+    try {
+        const result = await blogService.uploadBlogAsset(req.params.projectId, req.files);
+        res.json(result);
+    }
+    catch (error) {
+        console.error("Error uploading blog asset:", error);
+        res.status(500).json({ error: "Failed to upload blog asset", errorMessage: error.message });
+    }
+});
 
+router.get("/project/:projectId/assets", async (req, res) => {
+    try {
+        const assets = await blogService.getBlogAssetsByProjectId(req.params.projectId);
+        res.json({ assets });
+    }
+    catch (error) {
+        console.error("Error fetching blog assets:", error);
+        res.status(500).json({ error: "Failed to fetch blog assets", errorMessage: error.message });
+    }
+});
+
+router.get("/asset/:assetId", async (req, res) => {
+    await blogService.fetchAssetContent(req, res);
+});
+
+router.put("/asset/:assetId/description", async (req, res) => {
+    try {
+        const result = await blogService.updateDescriptionForAsset(req.params.assetId, req.body.description);
+        res.json({
+            message: "Blog asset description updated successfully", 
+            assetId: req.params.assetId,
+            newDescription: req.body.description,
+            updateResult: result
+        });
+    }
+    catch (error) {
+        console.error("Error updating blog asset description:", error);
+        res.status(500).json({ error: "Failed to update blog asset description", errorMessage: error.message });
+    }
+});
+
+router.delete("/asset/:assetId", async (req, res) => {
+    try {
+        const success = await blogService.deleteBlogAsset(req.params.assetId);
+        if (success) {
+            res.json({ message: "Blog asset deleted successfully" });
+        }
+        else {
+            res.status(404).json({ error: "Blog asset not found" });
+        }
+    }
+    catch (error) {
+        console.error("Error deleting blog asset:", error);
+        res.status(500).json({ error: "Failed to delete blog asset", errorMessage: error.message });
+    }
+});
 
 module.exports = router;

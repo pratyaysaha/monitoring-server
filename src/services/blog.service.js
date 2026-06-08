@@ -2,7 +2,8 @@ const crypto = require("crypto");
 const blogDb = require("../db/blog-db");
 const { getGeminiResponse } = require("../services/geminiai.service");
 const fs = require("fs");
-const {hugoBasePath} = require("../configs");
+const { hugoBasePath } = require("../configs");
+const path = require("path");
 
 exports.createBlogProject = async ({ title, author }) => {
     if (!title || !author) {
@@ -94,11 +95,18 @@ exports.createBlogDraft = async (projectId, { prompt }) => {
         throw new Error("Blog project not found");
     }
     const id = crypto.randomUUID();
-    const draftContext = {
+    let draftContext = {
         draft_id: id,
         generation_prompt: prompt
     }
-    const promptWithContext = await preparePromptForDraft(project, draftContext);
+    const assetsStmt = blogDb.prepare(`
+        SELECT * FROM blog_assets WHERE project_id = ?
+    `);
+    const assets = assetsStmt.all(projectId);
+    if (assets != null && assets.length > 0) {
+        draftContext = { ...draftContext, assets }
+    }
+    const promptWithContext = await preparePromptForDraft(project, draftContext,);
     const aiResponse = await getGeminiResponse(promptWithContext);
     if (!aiResponse.success) {
         throw new Error("Failed to generate AI response: " + aiResponse.error);
@@ -124,6 +132,10 @@ const preparePromptForDraft = async (project, draft) => {
         draft: draft
     }
     draftGenerationContext += `\n\nContext:\n${JSON.stringify(context, null, 2)}\n\n`;
+    if (draft.hasOwnProperty("assets")) {
+        let assetContext = fs.readFileSync("./src/context/assetContext.txt", "utf-8");
+        draftGenerationContext += `\n\n${assetContext}`
+    }
     draftGenerationContext += `\n\nInstructions:\nBased on the above context, generate the next version of the draft markdown. Focus on improving the structure and content quality. Do not change the overall topic or theme of the draft.\n\n`;
     return draftGenerationContext;
 
@@ -230,13 +242,13 @@ exports.publishBlogDraft = async (projectId, slug) => {
     if (!project) {
         throw new Error("Blog project not found");
     }
-    if(project.status == "draft") {
+    if (project.status == "draft") {
         throw new Error("No draft selected for publishing");
     }
-    if(project.status == "published") {
+    if (project.status == "published") {
         throw new Error("Project already published. Unpublish before publishing again");
     }
-    if(project.status !== "draft_selected" || !project.selected_draft_id) {
+    if (project.status !== "draft_selected" || !project.selected_draft_id) {
         throw new Error("No draft selected for publishing");
     }
     const existingPostStmt = blogDb.prepare(`
@@ -253,9 +265,7 @@ exports.publishBlogDraft = async (projectId, slug) => {
     if (!draft) {
         throw new Error("Blog draft not found");
     }
-    const markdownPath = `${hugoBasePath}/${slug}.md`;
-    fs.writeFileSync(markdownPath, draft.markdown);
-    markDraftAsFalseInMarkdown(markdownPath);
+    const { markdownPath } = createHugoFileStructure(project, draft, slug);
     const stmt = blogDb.prepare(`
         INSERT INTO blog_posts (post_id, project_id, draft_id, slug, markdown_path, published_at) VALUES (?, ?, ?, ?, ?, datetime('now'))
     `);
@@ -273,6 +283,96 @@ exports.publishBlogDraft = async (projectId, slug) => {
         updateProjectStmt.run(projectId);
     }
     return output;
+}
+
+function extractAssetIds(markdown) {
+    const matches = markdown.matchAll(
+        /asset:\/\/([a-zA-Z0-9-]+)/g
+    );
+
+    return [
+        ...new Set(
+            Array.from(matches, match => match[1])
+        )
+    ];
+}
+
+function createHugoFileStructure(project, draft, slug) {
+
+    const postDir = path.join(
+        hugoBasePath,
+        slug
+    );
+
+    const assetIds = extractAssetIds(
+        draft.markdown
+    );
+
+    let markdown = draft.markdown;
+
+    if (assetIds.length > 0) {
+        
+        const placeholders =
+            assetIds.map(() => "?").join(",");
+
+        const assetStmt = blogDb.prepare(`
+            SELECT *
+            FROM blog_assets
+            WHERE asset_id IN (${placeholders})
+        `);
+
+        const assets = assetStmt.all(
+            ...assetIds
+        );
+
+        for (const asset of assets) {
+            if (!fs.existsSync(asset.file_path)) {
+                throw new Error(
+                    `Asset missing: ${asset.asset_id}`
+                );
+            }
+        }
+
+        fs.mkdirSync(postDir, {
+            recursive: true
+        });
+
+        for (const asset of assets) {
+            const destinationFilename = path.basename(asset.file_path);
+            const destinationPath = path.join(
+                postDir,
+                destinationFilename
+            );
+            if (!fs.existsSync(asset.file_path)) {
+                throw new Error(
+                    `Asset file not found: ${asset.asset_id}`
+                );
+            }
+            fs.copyFileSync(
+                asset.file_path,
+                destinationPath
+            );
+        }
+    }
+
+    const markdownPath = path.join(
+        postDir,
+        "index.md"
+    );
+
+    fs.writeFileSync(
+        markdownPath,
+        markdown
+    );
+
+    markDraftAsFalseInMarkdown(
+        markdownPath
+    );
+
+    return {
+        markdownPath,
+        postDir
+    };
 }
 
 exports.getAllPosts = async () => {
@@ -334,7 +434,7 @@ exports.unPublishBlogPost = async (postId) => {
     `);
     deletePostStmt.run(postId);
     return info.changes > 0;
-}      
+}
 
 const removePublishedMarkdown = (markdownPath) => {
     if (fs.existsSync(markdownPath)) {
@@ -348,4 +448,133 @@ const markDraftAsFalseInMarkdown = (markdownPath) => {
         content = content.replace(/draft:\s*true/, "draft: false");
         fs.writeFileSync(markdownPath, content);
     }
+}
+
+exports.uploadBlogAsset = async (projectId, files) => {
+    try {
+        if (!projectId || !files || files.length === 0) {
+            throw new Error("Missing required fields: projectId or files");
+        }
+        const projectStmt = blogDb.prepare(`
+        SELECT * FROM blog_projects WHERE project_id = ?`);
+        const project = projectStmt.get(projectId);
+        if (!project) {
+            throw new Error("Blog project not found");
+        }
+        const uploadedFiles = [];
+        for (const file of files) {
+            const path = file.path;
+            const fileName = file.originalname;
+            const mimeType = file.mimetype;
+            const assetId = file.assetId;
+            const stmt = blogDb.prepare(`
+                INSERT INTO blog_assets (asset_id, project_id, asset_type, file_name, file_path) VALUES (?, ?, ?, ?, ?)
+            `);
+            stmt.run(assetId, projectId, mimeType, fileName, path);
+            uploadedFiles.push({
+                assetId,
+                fileName,
+                path,
+                projectId,
+                assetType: mimeType
+            });
+        }
+        return uploadedFiles;
+    } catch (error) {
+        console.error("Error in uploadBlogAsset:", error);
+        for (const file of files) {
+            console.log("Cleaning up file:", file.path);
+            if (fs.existsSync(file.path)) {
+                fs.unlinkSync(file.path);
+            }
+        }
+        throw error;
+    }
+}
+
+exports.getBlogAssetsByProjectId = async (projectId) => {
+    if (!projectId) {
+        throw new Error("Missing required field: projectId");
+    }
+    const projectStmt = blogDb.prepare(`
+        SELECT * FROM blog_projects WHERE project_id = ?`);
+    const project = projectStmt.get(projectId);
+    if (!project) {
+        throw new Error("Blog project not found");
+    }
+    const stmt = blogDb.prepare(`
+        SELECT * FROM blog_assets WHERE project_id = ?
+    `);
+    return stmt.all(projectId);
+}
+
+exports.getBlogAssetsByAssetId = async (assetId) => {
+    if (!assetId) {
+        throw new Error("Missing required field: assetId");
+    }
+    const stmt = blogDb.prepare(`
+        SELECT * FROM blog_assets WHERE asset_id = ?
+    `);
+    return stmt.get(assetId);
+}
+
+exports.fetchAssetContent = async (req, res) => {
+    try {
+        const { assetId } = req.params;
+        if (!assetId) {
+            return res.status(400).json({ error: "Missing required field: assetId" });
+        }
+        const asset = await exports.getBlogAssetsByAssetId(assetId);
+        if (!asset) {
+            return res.status(404).json({ error: "Asset not found" });
+        }
+        const content = fs.readFileSync(asset.file_path);
+        res.setHeader("Content-Type", asset.asset_type);
+        res.send(content);
+    } catch (error) {
+        console.error("Error in fetchAssetContent:", error);
+        res.status(500).json({ error: "Failed to fetch asset content", errorMessage: error.message });
+    }
+}
+
+exports.updateDescriptionForAsset = async (assetId, description) => {
+    if (!assetId || description === undefined) {
+        throw new Error("Missing required fields: assetId or description");
+    }
+    const assetStmt = blogDb.prepare(`
+        SELECT * FROM blog_assets WHERE asset_id = ?
+    `);
+    const asset = assetStmt.get(assetId);
+    if (!asset) {
+        throw new Error("Asset not found");
+    }
+    const stmt = blogDb.prepare(`
+        UPDATE blog_assets SET description = ? WHERE asset_id = ?
+    `);
+    const info = stmt.run(description, assetId);
+    return info.changes > 0;
+}
+
+exports.deleteBlogAsset = async (assetId) => {
+    if (!assetId) {
+        throw new Error("Missing required field: assetId");
+    }
+    const assetStmt = blogDb.prepare(`
+        SELECT * FROM blog_assets WHERE asset_id = ?
+    `);
+    const asset = assetStmt.get(assetId);
+    if (!asset) {
+        throw new Error("Asset not found");
+    }
+    const stmt = blogDb.prepare(`
+        DELETE FROM blog_assets WHERE asset_id = ?
+    `);
+    const info = stmt.run(assetId);
+    if (info.changes > 0) {
+        if (fs.existsSync(asset.file_path)) {
+            fs.unlinkSync(asset.file_path);
+        }
+        return true;
+    }
+    return false;
 }

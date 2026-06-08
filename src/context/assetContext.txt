@@ -1,0 +1,20 @@
+Asset Context:
+
+Assets ares available in draft context JSON - context.draft.assets
+
+Markdown Reference:
+![<Meaningful alt text from description or file_name>](asset://<asset_id>)
+asset_id can be fetched from the asset object in the context.draft.assets object array.
+
+
+
+Asset Inclusion Instructions
+-----------------------------
+
+- Use assets only when contextually relevant.
+- Refer the description of each asset to judge the relevancy.
+- Introduce an image before displaying it.
+- Explain the image after displaying it.
+- Do not place multiple images consecutively without accompanying text.
+- Use the provided markdown references exactly as supplied.
+- Do not invent additional assets.
