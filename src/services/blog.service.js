@@ -311,7 +311,7 @@ function createHugoFileStructure(project, draft, slug) {
     let markdown = draft.markdown;
 
     if (assetIds.length > 0) {
-        
+
         const placeholders =
             assetIds.map(() => "?").join(",");
 
@@ -428,7 +428,7 @@ exports.unPublishBlogPost = async (postId) => {
         UPDATE blog_projects SET status = 'draft', selected_draft_id = NULL, updated_at = datetime('now') WHERE project_id = ?
     `);
     const info = stmt.run(project.project_id);
-    removePublishedMarkdown(post.markdown_path);
+    removePublishedPostFolder(post.markdown_path);
     const deletePostStmt = blogDb.prepare(`
         DELETE FROM blog_posts WHERE post_id = ?
     `);
@@ -436,11 +436,15 @@ exports.unPublishBlogPost = async (postId) => {
     return info.changes > 0;
 }
 
-const removePublishedMarkdown = (markdownPath) => {
-    if (fs.existsSync(markdownPath)) {
-        fs.unlinkSync(markdownPath);
+const removePublishedPostFolder = (markdownPath) => {
+    const postDir = path.dirname(markdownPath);
+    if (fs.existsSync(postDir)) {
+        fs.rmSync(postDir, {
+            recursive: true,
+            force: true
+        });
     }
-}
+};
 
 const markDraftAsFalseInMarkdown = (markdownPath) => {
     if (fs.existsSync(markdownPath)) {
