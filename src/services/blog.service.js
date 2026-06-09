@@ -354,7 +354,9 @@ function createHugoFileStructure(project, draft, slug) {
             );
         }
     }
-
+    if (!fs.existsSync(postDir)) {
+        fs.mkdirSync(postDir, { recursive: true });
+    }
     const markdownPath = path.join(
         postDir,
         "index.md"
