@@ -3,7 +3,7 @@ Asset Context:
 Assets ares available in draft context JSON - context.draft.assets
 
 Markdown Reference:
-![<Meaningful alt text from description or file_name>](asset://<asset_id>)
+![<Meaningful alt text from description or file_name>](asset-<asset_id>)
 asset_id can be fetched from the asset object in the context.draft.assets object array.
 
 

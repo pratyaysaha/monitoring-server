@@ -287,8 +287,8 @@ exports.publishBlogDraft = async (projectId, slug) => {
 
 function extractAssetIds(markdown) {
     const matches = markdown.matchAll(
-        /asset:\/\/([a-zA-Z0-9-]+)/g
-    );
+    /asset-([a-zA-Z0-9-]+)/g
+);
 
     return [
         ...new Set(
