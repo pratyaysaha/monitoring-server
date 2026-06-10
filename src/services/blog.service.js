@@ -287,8 +287,8 @@ exports.publishBlogDraft = async (projectId, slug) => {
 
 function extractAssetIds(markdown) {
     const matches = markdown.matchAll(
-    /asset-([a-zA-Z0-9-]+)/g
-);
+        /asset-([a-zA-Z0-9-]+)/g
+    );
 
     return [
         ...new Set(
@@ -325,6 +325,12 @@ function createHugoFileStructure(project, draft, slug) {
             ...assetIds
         );
 
+        if (assets.length !== assetIds.length) {
+            throw new Error(
+                "One or more referenced assets were not found"
+            );
+        }
+
         for (const asset of assets) {
             if (!fs.existsSync(asset.file_path)) {
                 throw new Error(
@@ -351,6 +357,10 @@ function createHugoFileStructure(project, draft, slug) {
             fs.copyFileSync(
                 asset.file_path,
                 destinationPath
+            );
+            markdown = markdown.replaceAll(
+                `asset-${asset.asset_id}`,
+                destinationFilename
             );
         }
     }
