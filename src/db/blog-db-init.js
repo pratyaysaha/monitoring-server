@@ -62,6 +62,22 @@ function initializeBlogDatabase() {
     `);
 
     blogDb.exec(`
+        CREATE TABLE IF NOT EXISTS blog_social_posts (
+            social_post_id TEXT PRIMARY KEY,
+            project_id TEXT NOT NULL,
+            platform TEXT NOT NULL,
+            generation_prompt TEXT,
+            post_content TEXT NOT NULL,
+            model_name TEXT,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY(project_id)
+                REFERENCES blog_projects(project_id)
+                ON DELETE CASCADE
+        );
+    `);
+
+    blogDb.exec(`
         CREATE INDEX IF NOT EXISTS idx_blog_drafts_project_id
         ON blog_drafts(project_id);
     `);
@@ -74,6 +90,11 @@ function initializeBlogDatabase() {
     blogDb.exec(`
         CREATE INDEX IF NOT EXISTS idx_blog_posts_project_id
         ON blog_posts(project_id);
+    `);
+
+    blogDb.exec(`
+        CREATE INDEX IF NOT EXISTS idx_blog_social_posts_project_id
+        ON blog_social_posts(project_id);
     `);
 
     const projectColumns = blogDb

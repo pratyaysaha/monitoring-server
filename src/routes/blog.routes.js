@@ -242,7 +242,7 @@ router.put("/asset/:assetId/description", async (req, res) => {
     try {
         const result = await blogService.updateDescriptionForAsset(req.params.assetId, req.body.description);
         res.json({
-            message: "Blog asset description updated successfully", 
+            message: "Blog asset description updated successfully",
             assetId: req.params.assetId,
             newDescription: req.body.description,
             updateResult: result
@@ -269,5 +269,78 @@ router.delete("/asset/:assetId", async (req, res) => {
         res.status(500).json({ error: "Failed to delete blog asset", errorMessage: error.message });
     }
 });
+
+router.post("/project/:projectId/social/post", async (req, res) => {
+    try {
+        const response = await blogService.createSocialPost(req.params.projectId, {
+            platform: req.body.platform,
+            prompt: req.body.prompt
+        }, res)
+        res.status(200).json(response)
+    } catch (error) {
+        console.error("Error creating social post :", error);
+        res.status(500).json({
+            error: "Failed to create the social post",
+            errorMessage: error.message
+        })
+    }
+})
+
+router.get("/project/:projectId/social/post", async (req, res) => {
+    try {
+        const response = await blogService.getAllSocialMediaPost(req.params.projectId)
+        res.status(200).json({
+            socialPosts: response
+        })
+    } catch (error) {
+        console.error("Error creating social post :", error);
+        res.status(500).json({
+            error: "Failed to get the social post",
+            errorMessage: error.message
+        })
+    }
+});
+
+router.delete("/social/post/:socialPostId", async(req, res) => {
+    try {
+        const response = await blogService.deleteSocialMediaPost(req.params.socialPostId)
+        if(response){
+            res.status(200).json({
+                success: true,
+            })
+        }else{
+            res.status(500).json({
+                success: false
+            })
+        }
+    } catch (error) {
+        console.error("Error creating social post :", error);
+        res.status(500).json({
+            error: "Failed to delete the social post",
+            errorMessage: error.message
+        })
+    }
+})
+
+router.get("/social/post/:socialPostId" , async(req, res) => {
+    try {
+        const response = await blogService.getSocialMediaPost(req.params.socialPostId)
+        if(response == null){
+            res.status(404).json({
+                error: "Social Media Post not available",
+                errorMessage : `Social Media Post ${req.params.socialPostId} not found`
+            });
+        }else{
+            res.status(200).json(response)
+        }
+    } catch (error) {
+        console.error("Error creating social post :", error);
+        res.status(500).json({
+            error: "Failed to create the social post",
+            errorMessage: error.message
+        })
+    }
+})
+
 
 module.exports = router;
