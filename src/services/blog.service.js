@@ -4,6 +4,7 @@ const { getGeminiResponse } = require("../services/geminiai.service");
 const fs = require("fs");
 const { hugoBasePath } = require("../configs");
 const path = require("path");
+const { platform } = require("os");
 
 exports.createBlogProject = async ({ title, author }) => {
     if (!title || !author) {
@@ -256,7 +257,7 @@ exports.publishBlogDraft = async (projectId, slug) => {
     `);
     const existingPost = existingPostStmt.get(slug);
     if (existingPost) {
-        throw new Error("A post has already been published fwith same slug. Please choose a different slug and try again.");
+        throw new Error("A post has already been published with same slug. Please choose a different slug and try again.");
     }
     const draftStmt = blogDb.prepare(`
         SELECT * FROM blog_drafts WHERE draft_id = ?
@@ -593,4 +594,111 @@ exports.deleteBlogAsset = async (assetId) => {
         return true;
     }
     return false;
+}
+
+
+exports.createSocialPost = async (projectId, { platform, prompt }, res) => {
+    const id = crypto.randomUUID();
+    const projectStmnt = blogDb.prepare(`
+        SELECT * from blog_projects where project_id = ?
+    `);
+    const project = projectStmnt.get(projectId);
+    if (project == null) {
+        return res.status(404).json({
+            error: "Project not found",
+            errorMessage: `Project with ID ${projectId} does not exist`
+        })
+    }
+    if (project.status !== "published") {
+        return res.status(400).json({
+            error: "Validation error",
+            errorMessage: `No blog post published yet. Publish first to generate social media post`
+        })
+    }
+    const draftStmt = blogDb.prepare(`
+            SELECT * FROM blog_drafts where draft_id = ?
+            `);
+    const draft = draftStmt.get(project.selected_draft_id);
+    if (draft == null) {
+        return res.status(404).json({
+            error: "Draft not found",
+            errorMessage: `Selected Draft with ID ${project.selected_draft_id} does not exist`
+        })
+    }
+    const postStmt = blogDb.prepare(`
+        SELECT * from blog_posts where project_id = ? and draft_id = ?;
+    `);
+    const post = postStmt.get(project.project_id, project.selected_draft_id);
+    if(post == null) {
+        return res.status(404).json({
+            error: "Post not found",
+            errorMessage: `No blog post for project id : ${projectId} and selected draft id : ${project.selected_draft_id} exists`
+        })
+    }
+    let socialPostGenerationContext = fs.readFileSync("./src/context/socialPostContext.txt", "utf-8");
+    let context = {
+        title: project.title,
+        author: project.author_name,
+        content: draft.markdown,
+        platform: platform,
+        contentUrl: `https://blog.pratyaysaha.in/posts/${post.slug}`
+    }
+    socialPostGenerationContext += `\n\nContext:\n\n${JSON.stringify(context)}`;
+    socialPostGenerationContext += `\n\nPrompt : \n${prompt}`;
+    const aiResponse = await getGeminiResponse(socialPostGenerationContext);
+    if (!aiResponse.success) {
+        throw new Error("Failed to generate AI response: " + aiResponse.error);
+    }
+    const content = aiResponse.content;
+    
+    const socialMediaPostStmt = blogDb.prepare(`
+        INSERT INTO blog_social_posts(social_post_id, project_id, platform, generation_prompt, post_content, model_name) values (?,?,?,?,?,?);
+    `)
+    socialMediaPostStmt.run(id, projectId, platform, prompt, content, "gemini-2.5-flash");
+    return {
+        socialMediaPostId: id,
+        aiResponse: aiResponse,
+        success: true
+    }
+}
+
+exports.getAllSocialMediaPost = async (projectId) => {
+    const projectStmnt = blogDb.prepare(`
+        SELECT * from blog_projects where project_id = ?
+    `);
+    const project = projectStmnt.get(projectId);
+    if (project == null) {
+        throw new Error(
+           `Project with ID ${projectId} does not exist`
+        );
+    }
+    const socialMediaPostStmt = blogDb.prepare(`
+        SELECT * from blog_social_posts where project_id = ?
+    `);
+    return socialMediaPostStmt.all(projectId)
+}
+
+exports.deleteSocialMediaPost = async (socialMediaPostId) => {
+    const socialMediaPostStmnt = blogDb.prepare(`
+        SELECT * from blog_social_posts where social_post_id = ?
+    `);
+    const socialMediaPost = socialMediaPostStmnt.get(socialMediaPostId);
+    if(socialMediaPost == null){
+        throw new Error(
+           `Social Media Post with ID ${socialMediaPostId} does not exist`
+        );
+    }
+    const stmt = blogDb.prepare(`
+        DELETE FROM blog_social_posts WHERE social_post_id = ?
+    `);
+    const info = stmt.run(socialMediaPostId);
+    return info.changes > 0;
+}
+
+exports.getSocialMediaPost = async (socialMediaPostId) => {
+    const socialMediaPostStmnt = blogDb.prepare(`
+        SELECT * from blog_social_posts where social_post_id = ?
+    `);
+    return socialMediaPostStmnt.get(socialMediaPostId);
+    
 }
