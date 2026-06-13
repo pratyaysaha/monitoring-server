@@ -53,8 +53,8 @@ exports.getBlogAnalyticsPageView = async (projectId, params, res) => {
         const { post } = await performValidationAndFetchPost(projectId)
         const path = `/posts/${post.slug}/`
         const postCreatedAt = new Date(post.created_at + 'Z').getTime();
-        const startAt = [null, undefined].includes(params.startAt) ? postCreatedAt : req.query.startAt;
-        const endAt = [null, undefined].includes(params.endAt) ? Date.now() : req.query.endAt;
+        const startAt = [null, undefined].includes(params.startAt) ? postCreatedAt : params.startAt;
+        const endAt = [null, undefined].includes(params.endAt) ? Date.now() : params.endAt;
         const data = await umamiClient.getWebsitePageviews(BLOG_PROJECT_ID, {
             ...params,
             path,
@@ -82,8 +82,8 @@ exports.getBlogAnalyticsStats = async (projectId, params, res) => {
         const { post } = await performValidationAndFetchPost(projectId)
         const path = `/posts/${post.slug}/`
         const postCreatedAt = new Date(post.created_at + 'Z').getTime();
-        const startAt = [null, undefined].includes(params.startAt) ? postCreatedAt : req.query.startAt;
-        const endAt = [null, undefined].includes(params.endAt) ? Date.now() : req.query.endAt;
+        const startAt = [null, undefined].includes(params.startAt) ? postCreatedAt : params.startAt;
+        const endAt = [null, undefined].includes(params.endAt) ? Date.now() : params.endAt;
         const data = await umamiClient.getWebsiteStats(BLOG_PROJECT_ID, {
             ...params,
             path,
@@ -111,8 +111,8 @@ exports.getBlogAnalyticsMetrics = async (projectId, params, res) => {
         const { post } = await performValidationAndFetchPost(projectId)
         const path = `/posts/${post.slug}/`
         const postCreatedAt = new Date(post.created_at + 'Z').getTime();
-        const startAt = [null, undefined].includes(params.startAt) ? postCreatedAt : req.query.startAt;
-        const endAt = [null, undefined].includes(params.endAt) ? Date.now() : req.query.endAt;
+        const startAt = [null, undefined].includes(params.startAt) ? postCreatedAt : params.startAt;
+        const endAt = [null, undefined].includes(params.endAt) ? Date.now() : params.endAt;
         const data = await umamiClient.getWebsiteMetrics(BLOG_PROJECT_ID, {
             ...params,
             path,
