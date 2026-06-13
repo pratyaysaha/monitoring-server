@@ -11,6 +11,7 @@ const notificationRoutes = require("./routes/notification.route");
 const plexRoutes = require("./routes/plex.routes");
 const aiRoutes = require("./routes/ai.routes");
 const blogRoutes = require("./routes/blog.routes");
+const analyticsRoute = require("./routes/analytics.route")
 
 const { initializeDatabase } = require("./db/init");
 const { initializeBlogDatabase } = require("./db/blog-db-init");
@@ -44,6 +45,7 @@ app.use("/api/notification", notificationRoutes)
 app.use("/api/plex", plexRoutes);
 app.use("/api/ai", aiRoutes);
 app.use("/api/blog", blogRoutes);
+app.use("/api/analytics", analyticsRoute)
 
 app.get("/api/ping", (req, res) => {
   res.json({ status: "ok" });

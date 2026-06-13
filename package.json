@@ -12,6 +12,7 @@
   "description": "",
   "dependencies": {
     "@google/genai": "^2.8.0",
+    "@umami/api-client": "^0.80.0",
     "axios": "^1.15.2",
     "better-sqlite3": "^12.9.0",
     "cors": "^2.8.6",
