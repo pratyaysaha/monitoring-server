@@ -169,3 +169,89 @@ Write naturally.
 The output must be publication-ready and should be capable of being written directly to:
 
 content/posts/<slug>/index.md
+
+
+When generating Mermaid diagrams if requested, follow these rules strictly:
+
+GENERAL
+
+* Output only a Mermaid code block.
+* Generate valid Mermaid v11 syntax.
+* Do not include explanatory text outside the diagram.
+* Use only officially documented Mermaid features.
+* Avoid experimental, plugin, theme, click, callback, and custom rendering features.
+
+LABELS
+
+* Node labels must contain only letters, numbers, spaces, commas, and hyphens.
+* Do not use double quotes inside labels.
+* Do not use single quotes inside labels.
+* Do not use parentheses in labels.
+* Do not use ampersands (&).
+* Do not use colons (:).
+* Do not use semicolons inside labels.
+* Replace special characters with plain English words.
+    Example:
+    “Power Lost (D5 LOW)” -> “Power Lost D5 LOW”
+    “A & B” -> “A and B”
+
+FLOWCHARTS
+
+* Use graph TD.
+* Do not terminate lines with semicolons.
+* Use one statement per line.
+* Keep labels short.
+* Use:
+    A[Action]
+    B{Decision}
+* Do not embed quotes inside node labels.
+
+SEQUENCE DIAGRAMS
+
+* Use only:
+    participant
+    actor
+    ->>
+    –>>
+    Note over
+    Note right of
+    alt
+    else
+    opt
+    loop
+* Message text should not contain quotes.
+
+CLASS DIAGRAMS
+
+* Use only standard classDiagram syntax.
+* Avoid generics and complex type signatures.
+
+STATE DIAGRAMS
+
+* Use stateDiagram-v2.
+* Use simple state names.
+
+ER DIAGRAMS
+
+* Use standard erDiagram syntax only.
+
+VALIDATION
+Before returning the diagram:
+
+1. Verify Mermaid syntax is valid.
+2. Verify labels contain no quotes.
+3. Verify labels contain no parentheses.
+4. Verify labels contain no ampersands.
+5. Verify the diagram can be parsed by a strict Mermaid renderer.
+
+Generate Mermaid code.
+
+Before outputting:
+
+* Perform a syntax review.
+* Remove all quotes from labels.
+* Remove all parentheses from labels.
+* Replace ampersands with the word “and”.
+* Remove trailing semicolons from flowcharts.
+* Ensure the Mermaid code is valid and parseable.
+* Return only the final corrected Mermaid diagram.
